@@ -7,7 +7,8 @@ rng(42);
 
 %% Step 1: Define Data Distributions
 % Means - two of them close for overlap
-mu = [0 0; 3 3; 0 4; 4 0];
+%mu = [0 0; 3 3; 0 4; 4 0];
+mu = [0 0; 2.5 3; 0 4; 6 0];
 
 % Covariances - different covariance structures
 Sigma(:,:,1) = [1 0.5; 0.5 1];
@@ -20,7 +21,7 @@ priors = [0.2 0.3 0.28 0.22];
 
 %% Step 2: Generate Data of different sizes
 Ntrain = [10, 100, 1000];
-iterations = 10; % repeat experiments
+iterations = 100; % repeat experiments
 
 % Model orders to test
 orderValues = 1:10;
@@ -30,10 +31,35 @@ K = 10;
 % Store results
 selection_counts = zeros(length(Ntrain), numK);
 
+% Create GMM object
+trueGMM = gmdistribution(mu, Sigma, priors);
+
+
 %% Step 3 & 4: Run experiments
 for i = 1:length(Ntrain)
     N = Ntrain(i);
     fprintf('Dataset size: %d\n', N);
+
+    % Generate synthetic data from the true GMM
+    X = random(gmdistribution(mu, Sigma, priors), N);
+
+   % Visualize Data (overlay data samples with true distribution)
+    figure;
+    scatter(X(:,1), X(:,2), 30, 'filled');
+    hold on;
+    % Overlay contour of true GMM density
+    x1 = linspace(-4, 8, 100);
+    x2 = linspace(-4, 8, 100);
+    [X1, X2] = meshgrid(x1, x2);
+    Xgrid = [X1(:) X2(:)];
+    pdfVals = pdf(trueGMM, Xgrid);
+    contour(X1, X2, reshape(pdfVals, size(X1)), 10);
+    title(sprintf('GMM Samples (N = %d)', Ntrain(i)));
+    xlabel('x_1');
+    ylabel('x_2');
+    axis equal
+    hold off;
+
 
     for rep = 1:iterations
         
@@ -41,7 +67,6 @@ for i = 1:length(Ntrain)
         
         % Generate synthetic data from the true GMM
         X = random(gmdistribution(mu, Sigma, priors), N);
- 
        
         % Divide the data set into K approximately-equal-sized partitions
         dummy = ceil(linspace(0,N,K+1));
